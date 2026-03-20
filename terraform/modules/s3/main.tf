@@ -2,15 +2,17 @@ locals {
   name_prefix = "${var.project_name}-${var.environment}"
 }
 
+# ============================================================
 # S3 BUCKET: TERRAFORM STATE
 # Lưu terraform.tfstate — cần tạo trước khi enable backend
+# ============================================================
 resource "aws_s3_bucket" "tfstate" {
   bucket = var.tfstate_bucket_name
 
   # Ngăn xóa nhầm bucket đang chứa state
-  lifecycle {
-    prevent_destroy = true
-  }
+  # lifecycle {
+  #   prevent_destroy = true
+  # }
 
   tags = {
     Name    = var.tfstate_bucket_name
@@ -45,8 +47,10 @@ resource "aws_s3_bucket_public_access_block" "tfstate" {
   restrict_public_buckets = true
 }
 
+# ============================================================
 # DYNAMODB TABLE: TERRAFORM STATE LOCKING
 # Ngăn nhiều người chạy terraform apply cùng lúc
+# ============================================================
 resource "aws_dynamodb_table" "terraform_lock" {
   name         = var.dynamodb_lock_table
   billing_mode = "PAY_PER_REQUEST"
@@ -63,8 +67,10 @@ resource "aws_dynamodb_table" "terraform_lock" {
   }
 }
 
+# ============================================================
 # S3 BUCKET: CONFIG FILES
 # Lưu application config, environment files, ...
+# ============================================================
 resource "aws_s3_bucket" "config" {
   bucket = var.config_bucket_name
 
@@ -101,8 +107,10 @@ resource "aws_s3_bucket_public_access_block" "config" {
   restrict_public_buckets = true
 }
 
+# ============================================================
 # S3 BUCKET: STATIC FILES
 # Lưu assets tĩnh: images, CSS, JS, ...
+# ============================================================
 resource "aws_s3_bucket" "static" {
   bucket = var.static_bucket_name
 
@@ -147,14 +155,16 @@ resource "aws_s3_bucket_lifecycle_configuration" "static" {
     id     = "transition-old-files"
     status = "Enabled"
 
+    filter {}  # apply cho tất cả objects trong bucket
+
     transition {
       days          = 30
-      storage_class = "STANDARD_IA"  # Ít truy cập sau 30 ngày
+      storage_class = "STANDARD_IA"   # Ít truy cập sau 30 ngày
     }
 
     transition {
       days          = 90
-      storage_class = "GLACIER"      # Lưu trữ lạnh sau 90 ngày
+      storage_class = "GLACIER"  # Lưu trữ lạnh sau 90 ngày
     }
   }
 }

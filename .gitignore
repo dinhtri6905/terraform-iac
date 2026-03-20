@@ -1,20 +1,59 @@
-# Terraform state — không bao giờ commit
+# # Terraform state — không bao giờ commit
+# *.tfstate
+# *.tfstate.*
+# *.tfstate.backup
+
+# # Thư mục cache Terraform
+# .terraform/
+# .terraform.lock.hcl
+
+# # File chứa giá trị biến — có thể chứa secret
+# *.tfvars
+# *.tfvars.json
+
+# # Override files
+# override.tf
+# override.tf.json
+
+# # Crash log
+# crash.log
+# crash.*.log
+
+
+# ======================
+# TERRAFORM
+# ======================
+
+# State files — KHÔNG push lên git (chứa sensitive data)
 *.tfstate
 *.tfstate.*
 *.tfstate.backup
 
-# Thư mục cache Terraform
+# Thư mục .terraform — chứa provider binaries (nặng, không cần push)
 .terraform/
-.terraform.lock.hcl
+.terraform.tfstate
 
-# File chứa giá trị biến — có thể chứa secret
-*.tfvars
-*.tfvars.json
-
-# Override files
+# Override files — local only
 override.tf
 override.tf.json
+*_override.tf
+*_override.tf.json
 
 # Crash log
 crash.log
 crash.*.log
+
+# Sensitive variable files
+*.tfvars
+*.tfvars.json
+
+# Generated plan files
+*.tfplan
+
+# ======================
+# IDE / OS
+# ======================
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db

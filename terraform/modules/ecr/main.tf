@@ -5,8 +5,10 @@ locals {
 # Lấy AWS Account ID hiện tại — dùng trong policy
 data "aws_caller_identity" "current" {}
 
+# ============================================================
 # ECR REPOSITORIES
 # for_each tạo nhiều repo cùng lúc từ danh sách var.repositories
+# ============================================================
 resource "aws_ecr_repository" "this" {
   for_each = toset(var.repositories)
 
@@ -31,11 +33,15 @@ resource "aws_ecr_repository" "this" {
   }
 }
 
+# ============================================================
 # ECR LIFECYCLE POLICY
 # Tự động dọn dẹp image cũ để tiết kiệm storage cost
+# ============================================================
 resource "aws_ecr_lifecycle_policy" "this" {
-  for_each   = aws_ecr_repository.this
-  repository = each.value.name
+  for_each   = toset(var.repositories)   # ✅ keys tĩnh từ variable — không phụ thuộc apply-time
+  repository = aws_ecr_repository.this[each.key].name   # each.key = "backend" / "frontend"
+
+  depends_on = [aws_ecr_repository.this]
 
   policy = jsonencode({
     rules = [
@@ -54,7 +60,7 @@ resource "aws_ecr_lifecycle_policy" "this" {
       {
         # Rule 2: Xóa untagged image sau 45 ngày (image từ CI/CD chưa tag)
         rulePriority = 2
-        description  = "Xóa untagged images sau 7 ngày"
+        description  = "Xóa untagged images sau 45 ngày"
         selection = {
           tagStatus   = "untagged"
           countType   = "sinceImagePushed"
@@ -67,11 +73,15 @@ resource "aws_ecr_lifecycle_policy" "this" {
   })
 }
 
+# ============================================================
 # ECR REPOSITORY POLICY
 # Cho phép EKS worker nodes pull image từ ECR
+# ============================================================
 resource "aws_ecr_repository_policy" "this" {
-  for_each   = aws_ecr_repository.this
-  repository = each.value.name
+  for_each   = toset(var.repositories)   # keys tĩnh từ variable — không phụ thuộc apply-time
+  repository = aws_ecr_repository.this[each.key].name   # each.key = "backend" / "frontend"
+
+  depends_on = [aws_ecr_repository.this]
 
   policy = jsonencode({
     Version = "2012-10-17"

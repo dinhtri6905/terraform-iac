@@ -2,7 +2,7 @@
 variable "project_name" {
   description = "Tên project" // dùng làm prefix cho các resource
   type        = string
-  default     = "iac-dev"
+  default     = "iac"
 }
 
 variable "environment" {
@@ -90,7 +90,7 @@ variable "ecr_image_retention_count" {
 variable "tfstate_bucket_name" {
   description = "Tên S3 bucket lưu Terraform state"  //  (phải unique toàn cầu)
   type        = string
-  default     = "iac-dev-tfstate"
+  default     = "iac-dev-tfstate-548"
 }
 
 variable "config_bucket_name" {
@@ -102,7 +102,7 @@ variable "config_bucket_name" {
 variable "static_bucket_name" {
   description = "Tên S3 bucket lưu static files"  //  (phải unique toàn cầu)
   type        = string
-  default     = "myapp-dev-static"
+  default     = "iac-dev-static"
 }
 
 variable "dynamodb_lock_table" {
