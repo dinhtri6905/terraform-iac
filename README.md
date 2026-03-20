@@ -35,19 +35,6 @@
 # ============================================================ 
 -->
 
-## Push lên GitHub
-- Thêm file lock vào git (nên commit để đồng bộ version provider với team)
-git add .terraform.lock.hcl
-
-- Commit các thay đổi code (backend.tf đã comment, ...)
-git add backend.tf
-git add .
-
-git commit -m "feat: init terraform project"
-
-git push origin main
-
-
 ## Thứ tự destroy an toàn
 ``` bash
 # Bước 1 — Xem trước những gì sẽ bị xóa
