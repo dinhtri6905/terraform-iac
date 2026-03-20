@@ -1,0 +1,20 @@
+# Terraform state — không bao giờ commit
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Thư mục cache Terraform
+.terraform/
+.terraform.lock.hcl
+
+# File chứa giá trị biến — có thể chứa secret
+*.tfvars
+*.tfvars.json
+
+# Override files
+override.tf
+override.tf.json
+
+# Crash log
+crash.log
+crash.*.log
