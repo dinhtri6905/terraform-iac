@@ -19,6 +19,7 @@ on:
 env:
   AWS_REGION: ap-southeast-1
   TERRAFROM_VESION: 1.5.0
+  BUCKET_TF_STATE: ${{ secrets.BUCKET_TF_STATE }}
 
 jobs:
   validate:
@@ -69,6 +70,9 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TERRAFROM_VESION }}
+
+      - name: Terraform init
+        run: terraform init -backend-config="bucket=$BUCKET_TF_STATE"
 
       - name: Terraform Plan
         id: plan
