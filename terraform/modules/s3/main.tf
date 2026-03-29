@@ -24,7 +24,7 @@ resource "aws_s3_bucket_versioning" "tfstate" {
   bucket = aws_s3_bucket.tfstate.id
 
   versioning_configuration {
-    status = "Enabled"  # Bật versioning để rollback state khi cần
+    status = "Enabled" # Bật versioning để rollback state khi cần
   }
 }
 
@@ -155,16 +155,16 @@ resource "aws_s3_bucket_lifecycle_configuration" "static" {
     id     = "transition-old-files"
     status = "Enabled"
 
-    filter {}  # apply cho tất cả objects trong bucket
+    filter {} # apply cho tất cả objects trong bucket
 
     transition {
       days          = 30
-      storage_class = "STANDARD_IA"   # Ít truy cập sau 30 ngày
+      storage_class = "STANDARD_IA" # Ít truy cập sau 30 ngày
     }
 
     transition {
       days          = 90
-      storage_class = "GLACIER"  # Lưu trữ lạnh sau 90 ngày
+      storage_class = "GLACIER" # Lưu trữ lạnh sau 90 ngày
     }
   }
 }

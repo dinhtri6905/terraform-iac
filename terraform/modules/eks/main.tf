@@ -21,7 +21,7 @@ resource "aws_iam_role" "eks_cluster" {
       Action = "sts:AssumeRole"
       Effect = "Allow"
       Principal = {
-        Service = "eks.amazonaws.com" 
+        Service = "eks.amazonaws.com"
       }
     }]
   })
@@ -51,7 +51,7 @@ resource "aws_iam_role" "eks_nodes" {
       Action = "sts:AssumeRole"
       Effect = "Allow"
       Principal = {
-        Service = "ec2.amazonaws.com"  
+        Service = "ec2.amazonaws.com"
       }
     }]
   })
@@ -106,10 +106,10 @@ resource "aws_eks_cluster" "main" {
 
 # ===== EKS Node Group (Managed) với Auto Scaling =====
 resource "aws_eks_node_group" "main" {
-  cluster_name    = aws_eks_cluster.main.name  
+  cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${local.cluster_name}-node-group"
   node_role_arn   = aws_iam_role.eks_nodes.arn
-  subnet_ids      = var.private_subnet_ids     # Nodes chạy trong Private Subnets
+  subnet_ids      = var.private_subnet_ids # Nodes chạy trong Private Subnets
 
   instance_types = [var.node_instance_type]
   disk_size      = var.node_disk_size
@@ -121,7 +121,7 @@ resource "aws_eks_node_group" "main" {
   }
 
   update_config {
-    max_unavailable = 1  # Rolling update: tối đa 1 node unavailable tại 1 thời điểm
+    max_unavailable = 1 # Rolling update: tối đa 1 node unavailable tại 1 thời điểm
   }
 
   depends_on = [
@@ -181,5 +181,5 @@ resource "aws_iam_openid_connect_provider" "eks" {
 
 # ===== CloudWatch Log Group cho EKS =====
 # resource "aws_cloudwatch_log_group" "eks" {
-  
+
 # }
