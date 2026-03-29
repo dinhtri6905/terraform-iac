@@ -17,13 +17,17 @@ on:
       - 'terraform/**'
       - '.github/workflows/**'
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: ap-southeast-1
   TERRAFROM_VESION: 1.5.0
 
 jobs:
   validate:
     name: Validate and format tf files
     runs-on: ubuntu-latest
+    defaults:
+      run: 
+        shell: bash
+        working-directory: ./terraform
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -40,19 +44,13 @@ jobs:
           terraform_version: ${{ env.TERRAFROM_VESION }}
 
       - name: Terraform fmt check
-        run: |
-          cd terraform
-          terraform fmt -check -recursive
+        run: terraform fmt -check -recursive
 
       - name: Terraform init
-        run: |
-          cd terraform
-          terraform init -backend=false
+        run: terraform init -backend=false
 
       - name: Terraform validate
-        run: |
-          cd terraform
-          terraform validate
+        run: terraform validate
 
   deploy:
     name: Deploy infra
@@ -66,7 +64,6 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
-          cd terraform
           terraform plan -out=tfplan
           terraform show -json tfplan > tfplan.json
 
@@ -75,11 +72,8 @@ jobs:
         run: exit 1
 
       - name: Terraform apply
-        run: |
-          cd terraform
-          terraform apply tfplan
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve tfplan 
 
       - name: Capture Outputs
-        run: |
-          cd terraform
-          terraform output -json > ${{ runner.temp }}/outputs.json
+        run: terraform output -json > ${{ runner.temp }}/outputs.json

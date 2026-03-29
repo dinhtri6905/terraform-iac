@@ -88,19 +88,19 @@ variable "ecr_image_retention_count" {
 
 # ===== S3 =====
 variable "tfstate_bucket_name" {
-  description = "Tên S3 bucket lưu Terraform state"  //  (phải unique toàn cầu)
+  description = "Tên S3 bucket lưu Terraform state" //  (phải unique toàn cầu)
   type        = string
   default     = "iac-dev-tfstate-548"
 }
 
 variable "config_bucket_name" {
-  description = "Tên S3 bucket lưu config files"  //  (phải unique toàn cầu)
+  description = "Tên S3 bucket lưu config files" //  (phải unique toàn cầu)
   type        = string
   default     = "iac-dev-config"
 }
 
 variable "static_bucket_name" {
-  description = "Tên S3 bucket lưu static files"  //  (phải unique toàn cầu)
+  description = "Tên S3 bucket lưu static files" //  (phải unique toàn cầu)
   type        = string
   default     = "iac-dev-static"
 }
