@@ -34,8 +34,9 @@ jobs:
           aws-access-key-id: ${{ secrets.TDINH_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.TDINH_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
       - name: Setup tf
-        uses: harshicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TERRAFROM_VESION }}
 
