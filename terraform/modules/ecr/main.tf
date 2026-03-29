@@ -38,8 +38,8 @@ resource "aws_ecr_repository" "this" {
 # Tự động dọn dẹp image cũ để tiết kiệm storage cost
 # ============================================================
 resource "aws_ecr_lifecycle_policy" "this" {
-  for_each   = toset(var.repositories)   # ✅ keys tĩnh từ variable — không phụ thuộc apply-time
-  repository = aws_ecr_repository.this[each.key].name   # each.key = "backend" / "frontend"
+  for_each   = toset(var.repositories)                # ✅ keys tĩnh từ variable — không phụ thuộc apply-time
+  repository = aws_ecr_repository.this[each.key].name # each.key = "backend" / "frontend"
 
   depends_on = [aws_ecr_repository.this]
 
@@ -78,8 +78,8 @@ resource "aws_ecr_lifecycle_policy" "this" {
 # Cho phép EKS worker nodes pull image từ ECR
 # ============================================================
 resource "aws_ecr_repository_policy" "this" {
-  for_each   = toset(var.repositories)   # keys tĩnh từ variable — không phụ thuộc apply-time
-  repository = aws_ecr_repository.this[each.key].name   # each.key = "backend" / "frontend"
+  for_each   = toset(var.repositories)                # keys tĩnh từ variable — không phụ thuộc apply-time
+  repository = aws_ecr_repository.this[each.key].name # each.key = "backend" / "frontend"
 
   depends_on = [aws_ecr_repository.this]
 

@@ -40,21 +40,21 @@ module "eks" {
 module "ecr" {
   source = "./modules/ecr"
 
-  project_name = var.project_name
-  environment = var.environment
-  repositories = var.ecr_repositories
+  project_name          = var.project_name
+  environment           = var.environment
+  repositories          = var.ecr_repositories
   image_retention_count = var.ecr_image_retention_count
-  eks_node_role_arn = module.eks.node_group_iam_role_arn 
+  eks_node_role_arn     = module.eks.node_group_iam_role_arn
 }
 
 # ===== MODULE: S3 =====
 module "s3" {
   source = "./modules/s3"
 
-  project_name = var.project_name
-  environment = var.environment
+  project_name        = var.project_name
+  environment         = var.environment
   tfstate_bucket_name = var.tfstate_bucket_name
-  config_bucket_name = var.config_bucket_name
-  static_bucket_name = var.static_bucket_name
+  config_bucket_name  = var.config_bucket_name
+  static_bucket_name  = var.static_bucket_name
   dynamodb_lock_table = var.dynamodb_lock_table
 }
