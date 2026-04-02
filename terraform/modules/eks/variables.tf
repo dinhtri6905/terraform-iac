@@ -32,7 +32,7 @@ variable "node_security_group_id" {
 variable "node_instance_type" {
   description = "EC2 instance type cho worker nodes"
   type        = string
-  default     = "t3.medium"
+  default     = "c7i-flex.large"
 }
 
 variable "node_min_size" {
