@@ -55,3 +55,41 @@ terraform destroy -target module.vpc
 # Chỉ xóa S3
 terraform destroy -target module.s3
 ```
+
+Yêu cầu:
+1. Tách hệ thống Terraform thành 2 project riêng biệt:
+   * Project 1: "terraform-bootstrap"
+     * Chỉ dùng để tạo S3 bucket (tfstate) và DynamoDB table (lock)
+     * Chạy một lần duy nhất, không bị destroy cùng hệ thống chính
+   * Project 2: "terraform-infra"
+     * Dùng để triển khai hạ tầng chính (EKS, VPC, EC2, ECR, Security Group…)
+     * Sử dụng backend S3 đã tạo từ bootstrap
+
+2. Trong terraform-infra:
+   * Chỉ cấu hình backend "s3"
+   * KHÔNG được tạo lại S3 bucket hoặc DynamoDB table
+   * Sử dụng module hóa (modules: vpc, eks, ecr, security_group…)
+
+3. Thiết kế flow làm việc:
+   * Khởi tạo backend (bootstrap)
+   * Deploy infrastructure (infra)
+   * Destroy infrastructure an toàn (không ảnh hưởng backend)
+   * Destroy backend đúng cách (migrate state về local trước khi destroy)
+
+4. Giải thích rõ:
+   * Vì sao không được tạo backend trong cùng project
+   * Vì sao destroy backend trực tiếp sẽ gây lỗi
+   * Cách xử lý state lock khi bị kẹt
+
+5. Đưa ra:
+   * Cấu trúc thư mục chuẩn
+   * Ví dụ code backend.tf
+   * Ví dụ code bootstrap
+   * Best practices (versioning, multi-env, CI/CD)
+
+Mục tiêu:
+Tạo một hệ thống Terraform production-ready, tránh lỗi:
+* BucketAlreadyOwnedByYou
+* State lock
+* Destroy thất bại
+* Mất state
