@@ -1,14 +1,20 @@
 # ===== GENERAL =====
 variable "project_name" {
-  description = "Tên project" // dùng làm prefix cho các resource
+  description = "Tên project, dùng làm prefix cho resource"
   type        = string
   default     = "iac"
 }
 
 variable "environment" {
-  description = "Môi trường triển khai (dev / staging / prod)"
+  description = "Môi trường triển khai"
   type        = string
   default     = "dev"
+}
+
+variable "aws_region" {
+  description = "AWS region triển khai"
+  type        = string
+  default     = "ap-southeast-1"
 }
 
 # ===== VPC =====
@@ -81,32 +87,20 @@ variable "ecr_repositories" {
 }
 
 variable "ecr_image_retention_count" {
-  description = "Số lượng image tối đa được giữ lại mỗi repo"
+  description = "Số lượng image tối đa giữ lại mỗi repo"
   type        = number
   default     = 10
 }
 
-# ===== S3 =====
-variable "tfstate_bucket_name" {
-  description = "Tên S3 bucket lưu Terraform state" //  (phải unique toàn cầu)
-  type        = string
-  default     = "iac-dev-tfstate-548"
-}
-
+# ===== S3 APPLICATION BUCKETS =====
 variable "config_bucket_name" {
-  description = "Tên S3 bucket lưu config files" //  (phải unique toàn cầu)
+  description = "Tên S3 bucket lưu config files (unique toàn cầu)"
   type        = string
   default     = "iac-dev-config"
 }
 
 variable "static_bucket_name" {
-  description = "Tên S3 bucket lưu static files" //  (phải unique toàn cầu)
+  description = "Tên S3 bucket lưu static files (unique toàn cầu)"
   type        = string
   default     = "iac-dev-static"
-}
-
-variable "dynamodb_lock_table" {
-  description = "Tên DynamoDB table dùng cho Terraform state locking"
-  type        = string
-  default     = "terraform-lock"
 }

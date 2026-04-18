@@ -8,27 +8,24 @@ output "tfstate_bucket_arn" {
   value       = aws_s3_bucket.tfstate.arn
 }
 
-output "config_bucket_name" {
-  description = "Tên S3 bucket lưu config files"
-  value       = aws_s3_bucket.config.bucket
-}
-
-output "config_bucket_arn" {
-  description = "ARN của S3 bucket lưu config files"
-  value       = aws_s3_bucket.config.arn
-}
-
-output "static_bucket_name" {
-  description = "Tên S3 bucket lưu static files"
-  value       = aws_s3_bucket.static.bucket
-}
-
-output "static_bucket_arn" {
-  description = "ARN của S3 bucket lưu static files"
-  value       = aws_s3_bucket.static.arn
-}
-
 output "dynamodb_lock_table_name" {
   description = "Tên DynamoDB table dùng cho state locking"
   value       = aws_dynamodb_table.terraform_lock.name
+}
+
+output "dynamodb_lock_table_arn" {
+  description = "ARN của DynamoDB table"
+  value       = aws_dynamodb_table.terraform_lock.arn
+}
+
+# Gợi ý nội dung cho terraform-infra/backend.tf
+output "backend_config_hint" {
+  description = "Copy giá trị này vào terraform-infra/backend.tf"
+  value       = <<-EOT
+    bucket         = "${aws_s3_bucket.tfstate.bucket}"
+    key            = "infra/dev/terraform.tfstate"
+    region         = "${aws_s3_bucket.tfstate.region}"
+    dynamodb_table = "${aws_dynamodb_table.terraform_lock.name}"
+    encrypt        = true
+  EOT
 }

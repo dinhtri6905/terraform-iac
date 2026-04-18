@@ -1,3 +1,7 @@
+locals {
+  name_prefix = "${var.project_name}-${var.environment}"
+}
+
 # ===== MODULE: VPC =====
 module "vpc" {
   source = "./modules/vpc"
@@ -47,14 +51,14 @@ module "ecr" {
   eks_node_role_arn     = module.eks.node_group_iam_role_arn
 }
 
-# ===== MODULE: S3 =====
-# module "s3" {
-#   source = "./modules/s3"
+# ===== MODULE: S3 (Application Buckets) =====
+# Đây là config/static bucket cho ứng dụng
+# KHÔNG phải tfstate bucket — tfstate được quản lý bởi terraform-bootstrap
+module "s3" {
+  source = "./modules/s3"
 
-#   project_name        = var.project_name
-#   environment         = var.environment
-#   tfstate_bucket_name = var.tfstate_bucket_name
-#   config_bucket_name  = var.config_bucket_name
-#   static_bucket_name  = var.static_bucket_name
-#   dynamodb_lock_table = var.dynamodb_lock_table
-# }
+  project_name       = var.project_name
+  environment        = var.environment
+  config_bucket_name = var.config_bucket_name
+  static_bucket_name = var.static_bucket_name
+}

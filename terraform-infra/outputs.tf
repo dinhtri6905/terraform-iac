@@ -67,13 +67,7 @@ output "ecr_registry_id" {
   value       = module.ecr.registry_id
 }
 
-
-# ===== S3 OUTPUTS =====
-output "s3_tfstate_bucket_name" {
-  description = "Tên S3 bucket lưu Terraform state"
-  value       = module.s3.tfstate_bucket_name
-}
-
+# ===== S3 APPLICATION OUTPUTS =====
 output "s3_config_bucket_name" {
   description = "Tên S3 bucket lưu config files"
   value       = module.s3.config_bucket_name
@@ -83,12 +77,6 @@ output "s3_static_bucket_name" {
   description = "Tên S3 bucket lưu static files"
   value       = module.s3.static_bucket_name
 }
-
-output "dynamodb_lock_table_name" {
-  description = "Tên DynamoDB table dùng cho state locking"
-  value       = module.s3.dynamodb_lock_table_name
-}
-
 
 # ===== SECURITY GROUP OUTPUTS =====
 output "eks_cluster_sg_id" {

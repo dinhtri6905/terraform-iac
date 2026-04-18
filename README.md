@@ -93,3 +93,119 @@ Tạo một hệ thống Terraform production-ready, tránh lỗi:
 * State lock
 * Destroy thất bại
 * Mất state
+
+
+
+# Bước 1 — Bootstrap: Tạo S3 + DynamoDB (chạy 1 lần)
+```bash
+cd terraform-bootstrap
+
+terraform init
+
+# Xem sẽ tạo gì
+terraform plan
+
+# Tạo S3 bucket tfstate + DynamoDB lock
+terraform apply
+```
+Sau bước này bạn có:
+- S3 bucket: iac-dev-tfstate-548 với versioning + SSE-KMS + prevent_destroy
+- DynamoDB: iac-dev-tf-lock với prevent_destroy
+- State của bootstrap nằm ở terraform-bootstrap/terraform.tfstate (local)
+   +@@ Giữ file terraform.tfstate của bootstrap lại, đừng xóa. @@
+
+# Bước 2 — Deploy Infrastructure
+```bash
+cd ../terraform-infra
+
+terraform init
+
+terraform plan
+
+terraform apply
+```
+Sau bước này bạn có:
+- VPC + 3 Public Subnets + 3 Private Subnets + NAT Gateways
+- Security Groups cho EKS cluster + worker nodes
+- EKS Cluster iac-dev-eks + Node Group + OIDC Provider
+- ECR repositories: iac-dev-backend, iac-dev-frontend
+- S3 buckets: iac-dev-config, iac-dev-static
+
+# Bước 3 — Kết nối kubectl
+```bash
+aws eks update-kubeconfig \
+  --region ap-southeast-1 \
+  --name iac-dev-eks
+
+kubectl get nodes
+```
+
+# Bước 4 — Import nếu bucket đã tồn tại
+Nếu iac-dev-config hoặc iac-dev-static đã có trước đó:
+```bash
+# Mở terraform-infra/import.tf, uncomment block cần import:
+# import {
+#   to = module.s3.aws_s3_bucket.config
+#   id = "iac-dev-config"
+# }
+
+terraform plan    # xem import plan
+terraform apply   # thực hiện import
+
+# Comment lại import.tf sau khi xong
+```
+
+# Bước 5 — Destroy Infrastructure (an toàn)
+```bash
+cd terraform-infra
+
+terraform destroy
+```
+- S3 tfstate và DynamoDB lock vẫn còn nguyên. Bootstrap không bị ảnh hưởng.
+
+# Bước 6 — Destroy Bootstrap (chỉ khi muốn xóa hoàn toàn)
+```bash
+cd terraform-bootstrap
+# 1. Tạm comment prevent_destroy trong main.tf:
+#    aws_s3_bucket.tfstate       → comment lifecycle { prevent_destroy = true }
+#    aws_dynamodb_table.lock     → comment lifecycle { prevent_destroy = true }
+
+# 2. Apply để cập nhật
+terraform apply
+
+# 3. Xóa hết objects trong S3 (bucket phải empty mới delete được)
+aws s3 rm s3://iac-dev-tfstate-548 --recursive
+
+# 4. Xóa tất cả versions (do versioning đang enabled)
+aws s3api list-object-versions \
+  --bucket iac-dev-tfstate-548 \
+  --query 'Versions[].[Key,VersionId]' \
+  --output text | while read KEY VER; do
+    aws s3api delete-object \
+      --bucket iac-dev-tfstate-548 \
+      --key "$KEY" \
+      --version-id "$VER"
+  done
+
+# 5. Destroy bootstrap
+terraform destroy
+```
+
+## Xử lý State Lock bị kẹt
+```bash
+# Lấy Lock ID từ error message khi plan/apply bị interrupt
+# Error: Error acquiring the state lock
+# Lock ID: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Đảm bảo không còn tiến trình Terraform nào đang chạy
+ps aux | grep terraform
+
+# Force unlock
+cd terraform-infra
+terraform force-unlock <LOCK_ID>
+
+# Nếu vẫn kẹt → xóa trực tiếp trong DynamoDB
+aws dynamodb delete-item \
+  --table-name iac-dev-tf-lock \
+  --key '{"LockID":{"S":"iac-dev-tfstate-548/infra/dev/terraform.tfstate"}}'
+```
