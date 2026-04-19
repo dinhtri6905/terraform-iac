@@ -1,211 +1,124 @@
-# Mô hình
-1. AWS Network: 1 VPC, 3 Availability Zones, 3 Public subnets, 3 Private subnets, Security Group, Internet Gateway, NAT Gateway
+# AWS Infrastructure on Terraform
 
-2. EKS: Amazon EKS, Auto Scaling Group, Kubernetes ELB(route traffic vào EKS), nodes(1→3)
+This project uses Terraform to provision AWS infrastructure with a clear two-layer design:
 
-3. ECR: lưu trữ và quản lý Docker image
+- `terraform-bootstrap`: creates and manages the Terraform remote backend
+- `terraform-infra`: provisions the main AWS infrastructure
 
-4. S3: dành cho các file (tfstate, configure file, static file,...)
+The goal of this repository is to manage infrastructure safely with remote state, state locking, modular code, and a clean separation between backend resources and application infrastructure.
 
+## Project overview
 
-<!-- 
-# ============================================================
-# HƯỚNG DẪN SỬ DỤNG BACKEND
-# ============================================================
-#
-# Backend có vấn đề "chicken-and-egg":
-# bucket phải tồn tại TRƯỚC khi Terraform dùng nó làm backend.
-#
-# Thứ tự deploy đúng:
-#
-# BƯỚC 1 — Comment toàn bộ block backend "s3" {} ở trên
-#           Terraform sẽ dùng local backend (lưu state tại máy)
-#
-# BƯỚC 2 — Tạo S3 bucket và DynamoDB table trước
-#   terraform init
-#   terraform apply -target module.s3
-#
-# BƯỚC 3 — Uncomment block backend "s3" {} ở trên
-#           Sau đó migrate state lên S3
-#   terraform init -migrate-state
-#
-# BƯỚC 4 — Apply toàn bộ hạ tầng còn lại
-#   terraform apply
-#
-# ============================================================ 
--->
+This repository is split into 2 independent Terraform projects.
 
-## Thứ tự destroy an toàn
-``` bash
-# Bước 1 — Xem trước những gì sẽ bị xóa
-terraform plan -destroy
+### 1. terraform-bootstrap
+This project is used only once to create the Terraform backend:
 
-# Bước 2 — Destroy toàn bộ
-terraform destroy
+- S3 bucket for remote state: `iac-dev-tfstate-548`
+- DynamoDB table for state locking: `iac-dev-tf-lock`
+
+This project is separated from the main infrastructure so the backend is not created, modified, or destroyed together with the application stack.
+
+### 2. terraform-infra
+This project provisions the main AWS infrastructure and uses the S3 backend created by `terraform-bootstrap`.
+
+Main components:
+
+- VPC
+- Security Groups
+- EKS cluster and node group
+- ECR repositories
+- Application S3 buckets
+
+The infrastructure is organized with reusable Terraform modules for `vpc`, `eks`, `ecr`, `security_group`, and `s3`.
+
+## Repository structure
+
+```bash
+.
+├── terraform-bootstrap/
+│   ├── backend.tf
+│   ├── providers.tf
+│   ├── versions.tf
+│   ├── main.tf
+│   ├── variables.tf
+│   └── outputs.tf
+│
+├── terraform-infra/
+│   ├── backend.tf
+│   ├── providers.tf
+│   ├── versions.tf
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── outputs.tf
+│   ├── import.tf
+│   └── modules/
+│       ├── vpc/
+│       ├── eks/
+│       ├── ecr/
+│       ├── security_group/
+│       └── s3/
+│
+└── README.md
 ```
 
-## Nếu chỉ muốn destroy 1 module cụ thể
-``` bash
-# Chỉ xóa EKS (tốn tiền nhất)
-terraform destroy -target module.eks
+## How it works
 
-# Chỉ xóa VPC
-terraform destroy -target module.vpc
+### Step 1: Bootstrap backend
+Create the Terraform backend first:
 
-# Chỉ xóa S3
-terraform destroy -target module.s3
-```
-
-Yêu cầu:
-1. Tách hệ thống Terraform thành 2 project riêng biệt:
-   * Project 1: "terraform-bootstrap"
-     * Chỉ dùng để tạo S3 bucket (tfstate) và DynamoDB table (lock)
-     * Chạy một lần duy nhất, không bị destroy cùng hệ thống chính
-   * Project 2: "terraform-infra"
-     * Dùng để triển khai hạ tầng chính (EKS, VPC, EC2, ECR, Security Group…)
-     * Sử dụng backend S3 đã tạo từ bootstrap
-
-2. Trong terraform-infra:
-   * Chỉ cấu hình backend "s3"
-   * KHÔNG được tạo lại S3 bucket hoặc DynamoDB table
-   * Sử dụng module hóa (modules: vpc, eks, ecr, security_group…)
-
-3. Thiết kế flow làm việc:
-   * Khởi tạo backend (bootstrap)
-   * Deploy infrastructure (infra)
-   * Destroy infrastructure an toàn (không ảnh hưởng backend)
-   * Destroy backend đúng cách (migrate state về local trước khi destroy)
-
-4. Giải thích rõ:
-   * Vì sao không được tạo backend trong cùng project
-   * Vì sao destroy backend trực tiếp sẽ gây lỗi
-   * Cách xử lý state lock khi bị kẹt
-
-5. Đưa ra:
-   * Cấu trúc thư mục chuẩn
-   * Ví dụ code backend.tf
-   * Ví dụ code bootstrap
-   * Best practices (versioning, multi-env, CI/CD)
-
-Mục tiêu:
-Tạo một hệ thống Terraform production-ready, tránh lỗi:
-* BucketAlreadyOwnedByYou
-* State lock
-* Destroy thất bại
-* Mất state
-
-
-
-# Bước 1 — Bootstrap: Tạo S3 + DynamoDB (chạy 1 lần)
 ```bash
 cd terraform-bootstrap
-
 terraform init
-
-# Xem sẽ tạo gì
-terraform plan
-
-# Tạo S3 bucket tfstate + DynamoDB lock
 terraform apply
 ```
-Sau bước này bạn có:
-- S3 bucket: iac-dev-tfstate-548 với versioning + SSE-KMS + prevent_destroy
-- DynamoDB: iac-dev-tf-lock với prevent_destroy
-- State của bootstrap nằm ở terraform-bootstrap/terraform.tfstate (local)
-   +@@ Giữ file terraform.tfstate của bootstrap lại, đừng xóa. @@
 
-# Bước 2 — Deploy Infrastructure
+This step creates:
+
+- S3 bucket: `iac-dev-tfstate-548`
+- DynamoDB table: `iac-dev-tf-lock`
+
+### Step 2: Deploy infrastructure
+Use the backend from bootstrap and deploy the main infrastructure:
+
 ```bash
 cd ../terraform-infra
-
 terraform init
-
-terraform plan
-
 terraform apply
 ```
-Sau bước này bạn có:
-- VPC + 3 Public Subnets + 3 Private Subnets + NAT Gateways
-- Security Groups cho EKS cluster + worker nodes
-- EKS Cluster iac-dev-eks + Node Group + OIDC Provider
-- ECR repositories: iac-dev-backend, iac-dev-frontend
-- S3 buckets: iac-dev-config, iac-dev-static
 
-# Bước 3 — Kết nối kubectl
-```bash
-aws eks update-kubeconfig \
-  --region ap-southeast-1 \
-  --name iac-dev-eks
+The infrastructure state is stored in:
 
-kubectl get nodes
-```
+- Bucket: `iac-dev-tfstate-548`
+- Key: `infra/dev/terraform.tfstate`
+- Region: `ap-southeast-1`
+- Lock table: `iac-dev-tf-lock`
 
-# Bước 4 — Import nếu bucket đã tồn tại
-Nếu iac-dev-config hoặc iac-dev-static đã có trước đó:
-```bash
-# Mở terraform-infra/import.tf, uncomment block cần import:
-# import {
-#   to = module.s3.aws_s3_bucket.config
-#   id = "iac-dev-config"
-# }
+## Why split bootstrap and infra?
 
-terraform plan    # xem import plan
-terraform apply   # thực hiện import
+Terraform must initialize its backend before it can read state or apply resources.
 
-# Comment lại import.tf sau khi xong
-```
+If the backend bucket and lock table are created inside the same project as the main infrastructure, Terraform can run into a circular dependency. Separating `terraform-bootstrap` and `terraform-infra` avoids that problem and makes the workflow safer.
 
-# Bước 5 — Destroy Infrastructure (an toàn)
+## Destroy workflow
+
+To stop AWS costs, destroy only the main infrastructure:
+
 ```bash
 cd terraform-infra
-
-terraform destroy
-```
-- S3 tfstate và DynamoDB lock vẫn còn nguyên. Bootstrap không bị ảnh hưởng.
-
-# Bước 6 — Destroy Bootstrap (chỉ khi muốn xóa hoàn toàn)
-```bash
-cd terraform-bootstrap
-# 1. Tạm comment prevent_destroy trong main.tf:
-#    aws_s3_bucket.tfstate       → comment lifecycle { prevent_destroy = true }
-#    aws_dynamodb_table.lock     → comment lifecycle { prevent_destroy = true }
-
-# 2. Apply để cập nhật
-terraform apply
-
-# 3. Xóa hết objects trong S3 (bucket phải empty mới delete được)
-aws s3 rm s3://iac-dev-tfstate-548 --recursive
-
-# 4. Xóa tất cả versions (do versioning đang enabled)
-aws s3api list-object-versions \
-  --bucket iac-dev-tfstate-548 \
-  --query 'Versions[].[Key,VersionId]' \
-  --output text | while read KEY VER; do
-    aws s3api delete-object \
-      --bucket iac-dev-tfstate-548 \
-      --key "$KEY" \
-      --version-id "$VER"
-  done
-
-# 5. Destroy bootstrap
 terraform destroy
 ```
 
-## Xử lý State Lock bị kẹt
+This removes resources such as VPC, EKS, NAT Gateway, node group, ECR, and application buckets.
+
+The backend should be kept in `terraform-bootstrap` unless you want to remove the entire Terraform platform.
+
+## Notes
+
+- Do not create the backend again inside `terraform-infra`
+- Do not destroy the backend before destroying `terraform-infra`
+- If a resource already exists but is missing from state, import it explicitly with the real name, for example:
+
 ```bash
-# Lấy Lock ID từ error message khi plan/apply bị interrupt
-# Error: Error acquiring the state lock
-# Lock ID: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-
-# Đảm bảo không còn tiến trình Terraform nào đang chạy
-ps aux | grep terraform
-
-# Force unlock
-cd terraform-infra
-terraform force-unlock <LOCK_ID>
-
-# Nếu vẫn kẹt → xóa trực tiếp trong DynamoDB
-aws dynamodb delete-item \
-  --table-name iac-dev-tf-lock \
-  --key '{"LockID":{"S":"iac-dev-tfstate-548/infra/dev/terraform.tfstate"}}'
+terraform import aws_s3_bucket.tfstate iac-dev-tfstate-548
 ```
