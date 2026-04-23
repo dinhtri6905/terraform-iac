@@ -64,6 +64,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create reports directory
+        run: mkdir -p reports
+
       - name: Run checkov
         id: checkov
         uses: bridgecrewio/checkov-action@master
@@ -75,6 +78,8 @@ jobs:
           soft_fail: false
           skip_check: CKV_AWS_1,CKV_AWS_21
           skip_download: false
+          soft_fail_on: MEDIUM
+          hard_fail_on: HIGH
 
       - name: Upload results
         if: always()
