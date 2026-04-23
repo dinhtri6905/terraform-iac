@@ -16,6 +16,7 @@ on:
     paths:
       - 'terraform/**'
       - '.github/workflows/**'
+  workflow_dispatch:
 env:
   AWS_REGION: ap-southeast-1
   TERRAFROM_VESION: 1.8.0
@@ -97,3 +98,43 @@ jobs:
 
       - name: Capture Outputs
         run: terraform output -json > ${{ runner.temp }}/outputs.json
+
+  destroy:
+    name: Destroy infra
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    defaults:
+      run: 
+        shell: bash
+        working-directory: ./terraform-infra
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Terraform 
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFROM_VESION }}
+
+      - name: Terraform init
+        run: terraform init -backend-config="bucket=$BUCKET_TF_STATE"
+
+      - name: Terraform Destroy Plan
+        id: destroy_plan
+        run: terraform plan -destroy -out=tfplan_destroy
+
+      - name: Destroy Plan status
+        if: steps.destroy_plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve -no-color
+        env:
+          TF_INPUT: false
