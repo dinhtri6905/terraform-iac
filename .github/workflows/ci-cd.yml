@@ -178,7 +178,7 @@ jobs:
               body: comment
             });
 
-    opa-compliance:
+  opa-compliance:
     name: OPA/Rego Policy Compliance
     runs-on: ubuntu-latest
     steps:
