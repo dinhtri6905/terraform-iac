@@ -221,8 +221,9 @@ jobs:
         run: |
           /tmp/opa/opa eval \
             -d policies/ \
+            -I \
             "data.terraform.deny" \
-            --stdin < ${{ runner.temp }}/tf-plan.json \
+            < ${{ runner.temp }}/tf-plan.json \
             > ${{ runner.temp }}/opa-results.json || true
 
       - name: Upload OPA Report
