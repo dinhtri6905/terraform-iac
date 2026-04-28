@@ -91,12 +91,6 @@ jobs:
           sarif_file: reports/checkov.sarif
           category: Checkov Terraform Scan
 
-      - name: Upload SARIF artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: checkov-report
-          path: reports/checkov.sarif
-
       - name: Comment PR with Checkov Results
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
@@ -201,13 +195,14 @@ jobs:
         run: |
           cd terraform-infra  
           terraform init -backend=false
-          terraform plan -json > ${{ runner.temp }}/tf-plan.json
+          terraform plan -out=tfplan
+          terraform show -json tfplan > ${{ runner.temp }}/tf-plan.json
 
       - name: Run OPA Policy Checks
         run: |
           /tmp/opa/opa eval \
             -d policies/ \
-            -b "data.terraform.deny" \
+            "data.terraform.deny" \
             --stdin < ${{ runner.temp }}/tf-plan.json \
             > ${{ runner.temp }}/opa-results.json || true
 
@@ -237,7 +232,7 @@ jobs:
           cat outputs.tf >> ../reports/outputs-docs.md
 
       - name: Upload Reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: compliance-reports
           path: |
