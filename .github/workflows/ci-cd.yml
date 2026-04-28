@@ -214,7 +214,6 @@ jobs:
         run: |
           cd terraform-infra  
           terraform init -backend=false
-          terraform plan -out=tfplan
           terraform show -json tfplan > ${{ runner.temp }}/tf-plan.json
 
       - name: Run OPA Policy Checks
