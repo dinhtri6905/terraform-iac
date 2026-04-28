@@ -78,7 +78,6 @@ jobs:
           framework: terraform
           output_format: sarif
           output_file_path: reports/checkov.sarif
-          soft_fail: false
           skip_check: CKV_AWS_1,CKV_AWS_21
           skip_download: false
           soft_fail: true
