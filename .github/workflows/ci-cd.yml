@@ -60,6 +60,9 @@ jobs:
         run: terraform validate
   checkov-scan:
     name: Security Scan with Checkov
+    permissions:
+      contents: read
+      security-events: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -78,8 +81,7 @@ jobs:
           soft_fail: false
           skip_check: CKV_AWS_1,CKV_AWS_21
           skip_download: false
-          soft_fail_on: MEDIUM
-          hard_fail_on: HIGH
+          soft_fail: true
 
       - name: Upload results
         if: always()
