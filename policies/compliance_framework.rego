@@ -1,6 +1,6 @@
 package terraform
 # CIS 2.1: CloudTrail logging must be enabled on all S3 buckets
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_s3_bucket"
     not resource.change.after.logging
@@ -8,14 +8,14 @@ deny[msg] {
 }
 
 # CIS 3.1: CloudTrail should be enabled
-deny[msg] {
+deny contains msg if {
     resources := [r | r := input.resource_changes[_]; r.type == "aws_cloudtrail"]
     count(resources) == 0
     msg := "At least one CloudTrail should be enabled (CIS 3.1)"
 }
 
 # CIS 3.4: Ensure CloudTrail trails are integrated with CloudWatch Logs
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_cloudtrail"
     not resource.change.after.cloud_watch_logs_group_arn
@@ -23,7 +23,7 @@ deny[msg] {
 }
 
 # CIS 4.1: Ensure a log metric filter and alarm exist for unauthorized API calls
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_cloudwatch_log_group"
     not resource.change.after.name
@@ -31,14 +31,14 @@ warn[msg] {
 }
 
 # CIS 5.1: Ensure IAM policies are attached only to groups or roles
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_iam_user_policy"
     msg := sprintf("IAM policy '%s' is attached to a user, should be attached to groups (CIS 5.1)", [resource.address])
 }
 
 # CIS 5.2: Ensure IAM policies that allow full ("*") permissions are removed
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_iam_policy"
     policy := json.unmarshal(resource.change.after.policy)
@@ -52,7 +52,7 @@ deny[msg] {
 }
 
 # CIS 5.3: Ensure MFA Delete is enabled on S3 bucket
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_s3_bucket_versioning"
     versioning := resource.change.after.versioning_configuration
@@ -61,7 +61,7 @@ warn[msg] {
 }
 
 # CIS 5.4: Ensure all data in Amazon RDS is securely encrypted
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_db_instance"
     resource.change.after.storage_encrypted != true
@@ -69,7 +69,7 @@ deny[msg] {
 }
 
 # CIS 5.5: Ensure all data in Amazon Redshift is securely encrypted
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_redshift_cluster"
     resource.change.after.encrypted != true
@@ -77,7 +77,7 @@ deny[msg] {
 }
 
 # CIS 5.6: Ensure all data in ElastiCache Replication Groups is securely encrypted
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_elasticache_replication_group"
     resource.change.after.at_rest_encryption_enabled != true
@@ -85,7 +85,7 @@ deny[msg] {
 }
 
 # Cost optimization policies
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_instance"
     instance_type := resource.change.after.instance_type
@@ -97,7 +97,7 @@ warn[msg] {
 }
 
 # Environment tagging policy
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     
     taggable_resources := [
@@ -119,7 +119,7 @@ deny[msg] {
     msg := sprintf("Resource '%s' must have tags (Environment, Project, Owner)", [resource.address])
 }
 
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     tags := resource.change.after.tags
     
