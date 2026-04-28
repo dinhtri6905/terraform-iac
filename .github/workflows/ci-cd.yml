@@ -178,6 +178,39 @@ jobs:
               body: comment
             });
 
+    opa-compliance:
+    name: OPA/Rego Policy Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup OPA
+        run: |
+          mkdir -p /tmp/opa
+          curl -L -o /tmp/opa/opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+          chmod +x /tmp/opa/opa
+          /tmp/opa/opa version
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Generate Terraform Plan JSON
+        run: |
+          cd terraform
+          terraform init -backend=false
+          terraform plan -json > ${{ runner.temp }}/tf-plan.json
+
+      - name: Run OPA Policy Checks
+        run: |
+          /tmp/opa/opa eval \
+            -d policies/ \
+            -b "data.terraform.deny" \
+            --stdin < ${{ runner.temp }}/tf-plan.json \
+            > ${{ runner.temp }}/opa-results.json || true
+
   generate-reports:
     name: Generate Compliance Reports
     runs-on: ubuntu-latest
