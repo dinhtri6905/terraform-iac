@@ -213,7 +213,7 @@ jobs:
       - name: Generate Terraform Plan JSON
         run: |
           cd terraform-infra  
-          terraform init -backend=false
+          terraform init -backend-config="bucket=$BUCKET_TF_STATE"
           terraform plan -out=tfplan
           terraform show -json tfplan > ${{ runner.temp }}/tf-plan.json
 
