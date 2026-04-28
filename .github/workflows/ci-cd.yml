@@ -84,10 +84,16 @@ jobs:
 
       - name: Upload results
         if: always()
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: reports/checkov.sarif
           category: Checkov Terraform Scan
+
+      - name: Upload SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report
+          path: reports/checkov.sarif
 
       - name: Comment PR with Checkov Results
         if: github.event_name == 'pull_request'
