@@ -26,6 +26,7 @@ env:
   AWS_REGION: ap-southeast-1
   TERRAFROM_VESION: 1.8.0
   BUCKET_TF_STATE: ${{ secrets.BUCKET_TF_STATE }}
+  SOFT_FAIL: ${{ startsWith(github.ref, 'refs/heads/feature/') }}
 
 jobs:
   validate:
@@ -80,7 +81,7 @@ jobs:
           output_file_path: reports/checkov.sarif
           skip_check: CKV_AWS_1,CKV_AWS_21
           skip_download: false
-          soft_fail: true
+          soft_fail: ${{ env.SOFT_FAIL }}
 
       - name: Upload results
         if: always()
