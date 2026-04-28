@@ -140,12 +140,12 @@ jobs:
 
       - name: Init TFLint
         run: |
-          cd terraform
+          cd terraform-infra
           tflint --init
 
       - name: Run TFLint
         run: |
-          cd terraform
+          cd terraform-infra
           tflint --format json > ${{ runner.temp }}/tflint-report.json || true
           cat ${{ runner.temp }}/tflint-report.json
 
@@ -199,7 +199,7 @@ jobs:
 
       - name: Generate Terraform Plan JSON
         run: |
-          cd terraform
+          cd terraform-infra  
           terraform init -backend=false
           terraform plan -json > ${{ runner.temp }}/tf-plan.json
 
@@ -228,7 +228,7 @@ jobs:
       - name: Generate Documentation
         run: |
           mkdir -p reports
-          cd terraform
+          cd terraform-infra  
           terraform init -backend=false
           
           # Generate outputs documentation
