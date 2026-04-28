@@ -1,7 +1,7 @@
 package terraform
 
 # Policy: All AWS resources must have proper tags
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_eks_cluster"
     not resource.change.after.tags
@@ -9,7 +9,7 @@ deny[msg] {
 }
 
 # Policy: S3 buckets must have encryption enabled
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_s3_bucket"
     not resource.change.after.server_side_encryption_configuration
@@ -17,7 +17,7 @@ deny[msg] {
 }
 
 # Policy: S3 buckets must have versioning enabled
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_s3_bucket_versioning"
     resource.change.after.versioning_configuration.status != "Enabled"
@@ -25,7 +25,7 @@ deny[msg] {
 }
 
 # Policy: EKS cluster must be encrypted
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_eks_cluster"
     not resource.change.after.encryption_config
@@ -33,7 +33,7 @@ deny[msg] {
 }
 
 # Policy: Security groups must restrict ingress from 0.0.0.0/0 on sensitive ports
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_security_group_rule"
     resource.change.after.type == "ingress"
@@ -43,7 +43,7 @@ deny[msg] {
 }
 
 # Policy: VPC Flow Logs must be enabled
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_vpc"
     not resource.change.after.enable_dns_hostnames
@@ -51,7 +51,7 @@ warn[msg] {
 }
 
 # Policy: ALB should have access logging enabled
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_lb"
     not resource.change.after.access_logs
@@ -59,7 +59,7 @@ warn[msg] {
 }
 
 # Policy: RDS encryption must be enabled
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_db_instance"
     resource.change.after.storage_encrypted == false
@@ -67,7 +67,7 @@ deny[msg] {
 }
 
 # Policy: IAM policy should not allow * resource with * action
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_iam_policy"
     
@@ -82,7 +82,7 @@ deny[msg] {
 }
 
 # Policy: EC2 instances should have IMDSv2 enforced
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_instance"
     

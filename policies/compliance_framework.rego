@@ -124,7 +124,7 @@ deny[msg] {
     tags := resource.change.after.tags
     
     tags
-    object.keys(tags) as keys
+    keys := object.keys(tags)
     
     required_tags := ["Environment", "Project"]
     missing_tags := [tag | tag := required_tags[_]; not keys[tag]]
