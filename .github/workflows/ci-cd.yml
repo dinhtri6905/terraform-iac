@@ -5,22 +5,28 @@ on:
       - main
       - stage
       - develop
+      - feature/**
     paths:
-      - 'terraform/**'
+      - 'terraform-bootstrap/**'
+      - 'terraform-infra/**'
       - '.github/workflows/**'
+      - 'policies/**'
   pull_request:
     branches:
       - main
       - stage
       - develop
     paths:
-      - 'terraform/**'
+      - 'terraform-bootstrap/**'
+      - 'terraform-infra/**'
       - '.github/workflows/**'
+      - 'policies/**'
   workflow_dispatch:
 env:
   AWS_REGION: ap-southeast-1
   TERRAFROM_VESION: 1.8.0
   BUCKET_TF_STATE: ${{ secrets.BUCKET_TF_STATE }}
+  SOFT_FAIL: ${{ startsWith(github.ref, 'refs/heads/feature/') }}
 
 jobs:
   validate:
@@ -53,6 +59,71 @@ jobs:
 
       - name: Terraform validate
         run: terraform validate
+  checkov-scan:
+    name: Security Scan with Checkov
+    permissions:
+      contents: read
+      security-events: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      - name: Run checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        with: 
+          directory: .
+          framework: terraform
+          output_format: sarif
+          output_file_path: reports/checkov.sarif
+          skip_check: CKV_AWS_1,CKV_AWS_21
+          skip_download: false
+          soft_fail: ${{ env.SOFT_FAIL }}
+
+      - name: Upload results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: reports/checkov.sarif
+          category: Checkov Terraform Scan
+
+      - name: Upload SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report
+          path: reports/checkov.sarif
+
+      - name: Comment PR with Checkov Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('./reports/checkov.sarif', 'utf8'));
+            let comment = '## Checkov Security Scan Results\n\n';
+            
+            if (results.runs[0].results.length === 0) {
+              comment += 'No security issues found!';
+            } else {
+              comment += `Found ${results.runs[0].results.length} issues\n\n`;
+              // Limit to first 5 results in PR comment
+              results.runs[0].results.slice(0, 5).forEach((result, idx) => {
+                comment += `${idx + 1}. **${result.ruleId}** - ${result.message.text}\n`;
+              });
+              if (results.runs[0].results.length > 5) {
+                comment += `\n_... and ${results.runs[0].results.length - 5} more issues_`;
+              }
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
 
   deploy:
     name: Deploy infra
