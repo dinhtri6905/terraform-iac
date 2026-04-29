@@ -24,7 +24,7 @@ on:
   workflow_dispatch:
 env:
   AWS_REGION: ap-southeast-1
-  TERRAFROM_VESION: 1.8.0
+  TERRAFORM_VERSION: 1.8.0
   BUCKET_TF_STATE: ${{ secrets.BUCKET_TF_STATE }}
   SOFT_FAIL: ${{ startsWith(github.ref, 'refs/heads/feature/') }}
 
@@ -49,7 +49,7 @@ jobs:
       - name: Setup tf
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: ${{ env.TERRAFROM_VESION }}
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
       - name: Terraform fmt check
         run: terraform fmt -check -recursive
@@ -59,6 +59,7 @@ jobs:
 
       - name: Terraform validate
         run: terraform validate
+
   checkov-scan:
     name: Security Scan with Checkov
     permissions:
@@ -90,7 +91,7 @@ jobs:
           sarif_file: reports/checkov.sarif
           category: Checkov Terraform Scan
 
-      - name: Upload SARIF artifact
+      - name: Upload Checkov Report
         uses: actions/upload-artifact@v4
         with:
           name: checkov-report
@@ -124,11 +125,168 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
+  
+  tflint:
+    name: TFLint Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v3
+        with:
+          tflint_version: latest
+
+      - name: Init TFLint
+        run: |
+          cd terraform-infra
+          tflint --init
+
+      - name: Run TFLint
+        run: |
+          cd terraform-infra
+          tflint --format json > ${{ runner.temp }}/tflint-report.json || true
+          cat ${{ runner.temp }}/tflint-report.json
+      
+      - name: Upload TFLint Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: tflint-report
+          path: ${{ runner.temp }}/tflint-report.json
+
+      - name: Comment PR with TFLint Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('${{ runner.temp }}/tflint-report.json', 'utf8'));
+            let comment = '## TFLint Analysis Results\n\n';
+            
+            if (results.issues.length === 0) {
+              comment += 'No linting issues found!';
+            } else {
+              comment += `Found ${results.issues.length} issues\n\n`;
+              results.issues.slice(0, 10).forEach((issue, idx) => {
+                comment += `${idx + 1}. **${issue.rule.name}** (${issue.range.filename}:${issue.range.start.line})\n`;
+                comment += `   - ${issue.message}\n`;
+              });
+              if (results.issues.length > 10) {
+                comment += `\n_... and ${results.issues.length - 10} more issues_`;
+              }
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  opa-compliance:
+    name: OPA/Rego Policy Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup OPA
+        run: |
+          mkdir -p /tmp/opa
+          curl -L -o /tmp/opa/opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+          chmod +x /tmp/opa/opa
+          /tmp/opa/opa version
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Generate Terraform Plan JSON
+        run: |
+          cd terraform-infra  
+          terraform init -backend-config="bucket=$BUCKET_TF_STATE"
+          terraform plan -out=tfplan
+          terraform show -json tfplan > ${{ runner.temp }}/tf-plan.json
+
+      - name: Run OPA Policy Checks
+        run: |
+          /tmp/opa/opa eval \
+            -d policies/ \
+            -I \
+            "data.terraform.deny" \
+            < ${{ runner.temp }}/tf-plan.json \
+            > ${{ runner.temp }}/opa-results.json || true
+
+      - name: Upload OPA Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: opa-report
+          path: ${{ runner.temp }}/opa-results.json
+
+  generate-reports:
+    name: Generate Compliance Reports
+    runs-on: ubuntu-latest
+    needs: [validate, checkov-scan, tflint, opa-compliance]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          path: reports/
+          merge-multiple: true
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Generate Documentation
+        run: |
+          mkdir -p reports
+          cd terraform-infra  
+          terraform init -backend=false
+          
+          # Generate outputs documentation
+          echo "# Terraform Outputs Documentation" > ../reports/outputs-docs.md
+          echo "" >> ../reports/outputs-docs.md
+          cat outputs.tf >> ../reports/outputs-docs.md
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-reports
+          path: |
+            reports/
+            terraform-infra/.terraform/modules/
+
+      - name: Comment PR with Summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## CI/CD Pipeline Summary\n\n All compliance and validation checks completed!\n\n Artifacts are available for download.`
+            });
 
   deploy:
     name: Deploy infra
     runs-on: ubuntu-latest
-    needs: validate
+    needs: [validate, checkov-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     defaults:
       run: 
@@ -148,7 +306,7 @@ jobs:
       - name: Setup Terraform 
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: ${{ env.TERRAFROM_VESION }}
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
       - name: Terraform init
         run: terraform init -backend-config="bucket=$BUCKET_TF_STATE"
@@ -192,7 +350,7 @@ jobs:
       - name: Setup Terraform 
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: ${{ env.TERRAFROM_VESION }}
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
       - name: Terraform init
         run: terraform init -backend-config="bucket=$BUCKET_TF_STATE"
