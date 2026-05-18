@@ -53,7 +53,7 @@ jobs:
       
       - name: Upload IAC Report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: iac-scan-report
           path: scan-reports/iac-scan-report-*.html
@@ -93,7 +93,7 @@ jobs:
       
       - name: Upload AWS Report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: aws-scan-report
           path: scan-reports/scoutsuite-*
@@ -123,7 +123,7 @@ jobs:
           python3 scripts/scan_infrastructure.py --aws-only || true
       
       - name: Upload Combined Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: combined-security-report
           path: scan-reports/security-report-combined-*.html
