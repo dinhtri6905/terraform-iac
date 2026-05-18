@@ -1,0 +1,142 @@
+name: IAC + AWS Infrastructure Scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      aws_profile:
+        description: 'AWS Profile'
+        required: false
+        default: 'default'
+      scan_type:
+        description: 'Scan Type'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - iac-only
+          - aws-only
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  iac-scan:
+    name: IAC Security Scan
+    runs-on: ubuntu-latest
+    if: contains(github.event.inputs.scan_type, 'all') || contains(github.event.inputs.scan_type, 'iac')
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: latest
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install TFLint
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+      
+      - name: Install Conftest
+        run: |
+          curl -L https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_linux_x86_64 -o conftest
+          chmod +x conftest
+          sudo mv conftest /usr/local/bin/
+      
+      - name: Run IAC Scans
+        run: |
+          python3 scripts/run_scans.py
+      
+      - name: Upload IAC Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: iac-scan-report
+          path: scan-reports/iac-scan-report-*.html
+          retention-days: 30
+
+  aws-scan:
+    name: AWS Infrastructure Scan
+    runs-on: ubuntu-latest
+    if: contains(github.event.inputs.scan_type, 'all') || contains(github.event.inputs.scan_type, 'aws')
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Install ScoutSuite
+        run: |
+          pip install scoutsuite
+      
+      - name: Install Prowler
+        run: |
+          pip install prowler-cloud-security
+      
+      - name: Run AWS Infrastructure Scans
+        run: |
+          python3 scripts/aws_scan.py
+        continue-on-error: true
+      
+      - name: Upload AWS Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: aws-scan-report
+          path: scan-reports/scoutsuite-*
+          retention-days: 30
+
+  combined-report:
+    name: Generate Combined Report
+    runs-on: ubuntu-latest
+    needs: [iac-scan, aws-scan]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Download All Reports
+        uses: actions/download-artifact@v3
+        with:
+          path: all-reports
+      
+      - name: Generate Combined Report
+        run: |
+          python3 scripts/scan_infrastructure.py --iac-only || true
+          python3 scripts/scan_infrastructure.py --aws-only || true
+      
+      - name: Upload Combined Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: combined-security-report
+          path: scan-reports/security-report-combined-*.html
+          retention-days: 30
+      
+      - name: Create Summary
+        if: always()
+        run: |
+          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Reports Generated" >> $GITHUB_STEP_SUMMARY
+          echo "- IAC Scan Report" >> $GITHUB_STEP_SUMMARY
+          echo "- AWS Infrastructure Report" >> $GITHUB_STEP_SUMMARY
+          echo "- Combined Security Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check Artifacts tab for detailed reports" >> $GITHUB_STEP_SUMMARY

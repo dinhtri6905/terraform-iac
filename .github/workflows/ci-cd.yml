@@ -129,6 +129,10 @@ jobs:
   tflint:
     name: TFLint Analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+      pull-requests: write 
+      id-token: write 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -235,6 +239,10 @@ jobs:
   generate-reports:
     name: Generate Compliance Reports
     runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+      pull-requests: write 
+      id-token: write 
     needs: [validate, checkov-scan, tflint, opa-compliance]
     if: always()
     steps:
