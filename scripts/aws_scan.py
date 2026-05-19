@@ -34,6 +34,43 @@ class AWSInfrastructureScanner:
             env['AWS_PROFILE'] = self.profile
         return env
     
+    def _check_tool_installed(self, tool_name: str, import_name: str = None, cli_command: str = None) -> bool:
+        """Check if a tool is installed via import or CLI"""
+        # Try import first
+        if import_name:
+            try:
+                __import__(import_name)
+                return True
+            except ImportError:
+                pass
+        
+        # Try CLI command
+        if cli_command:
+            try:
+                result = subprocess.run(
+                    [cli_command, "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                return result.returncode == 0
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                pass
+        
+        # Try pip show
+        try:
+            result = subprocess.run(
+                ["pip", "show", tool_name],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            return result.returncode == 0
+        except:
+            pass
+        
+        return False
+    
     def run_scoutsuite(self) -> Dict[str, Any]:
         """Run ScoutSuite AWS security audit"""
         print("\n🔍 Running ScoutSuite AWS Security Audit...")
@@ -47,14 +84,7 @@ class AWSInfrastructureScanner:
         
         try:
             # Check if scoutsuite is installed
-            result = subprocess.run(
-                ["scout", "--version"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            
-            if result.returncode != 0:
+            if not self._check_tool_installed("scoutsuite", "scout", "scout"):
                 print("⚠️  ScoutSuite not installed, skipping")
                 return {
                     "tool": "ScoutSuite",
@@ -161,14 +191,7 @@ class AWSInfrastructureScanner:
         
         try:
             # Check if prowler is installed
-            result = subprocess.run(
-                ["prowler", "--version"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            
-            if result.returncode != 0:
+            if not self._check_tool_installed("prowler", "prowler", "prowler"):
                 print("⚠️  Prowler not installed, skipping")
                 return {
                     "tool": "Prowler",

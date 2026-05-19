@@ -78,14 +78,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Install ScoutSuite
+      - name: Install Python Dependencies
         run: |
+          pip install --upgrade pip
           pip install scoutsuite
-      
+          
       - name: Install Prowler
         run: |
-          # Prowler 4.x - install from GitHub
-          pip install git+https://github.com/prowler-cloud/prowler.git@v4.0.0 || true
+          pip install git+https://github.com/prowler-cloud/prowler.git@v4.0.0 || pip install prowler-cloud
         continue-on-error: true
       
       - name: Run AWS Infrastructure Scans
