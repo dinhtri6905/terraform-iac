@@ -16,7 +16,7 @@ class ComplianceReportGenerator:
         
     def load_checkov_results(self) -> Dict[str, Any]:
         """Load Checkov SARIF results"""
-        checkov_file = self.reports_dir / "checkov.sarif"
+        checkov_file = self.reports_dir / "results_sarif.sarif"
         
         if not checkov_file.exists():
             return {
