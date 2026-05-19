@@ -271,6 +271,26 @@ jobs:
           echo "" >> ../reports/outputs-docs.md
           cat outputs.tf >> ../reports/outputs-docs.md
 
+      - name: Setup Python for Report Generation
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Generate Compliance HTML Report
+        run: |
+          python3 scripts/generate_compliance_report.py --reports-dir reports
+      
+      - name: Display Report Summary
+        run: |
+          echo "## Compliance Reports Generated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The following reports are available as artifacts:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Compliance HTML Report**: compliance-report-*.html" >> $GITHUB_STEP_SUMMARY
+          echo "- **Checkov Results**: checkov.sarif" >> $GITHUB_STEP_SUMMARY
+          echo "- **TFLint Results**: tflint-report.json" >> $GITHUB_STEP_SUMMARY
+          echo "- **OPA Results**: opa-results.json" >> $GITHUB_STEP_SUMMARY
+          echo "- **Documentation**: outputs-docs.md" >> $GITHUB_STEP_SUMMARY
+
       - name: Upload Reports
         uses: actions/upload-artifact@v4
         with:
@@ -279,16 +299,36 @@ jobs:
             reports/
             terraform-infra/.terraform/modules/
 
-      - name: Comment PR with Summary
+      - name: Comment PR with Compliance Summary
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
           script: |
+            const fs = require('fs');
+            let comment = '## 📊 Infrastructure Compliance Report\n\n';
+            
+            // Check for Checkov results
+            if (fs.existsSync('./reports/checkov.sarif')) {
+              const checkov = JSON.parse(fs.readFileSync('./reports/checkov.sarif', 'utf8'));
+              const checkIssues = checkov.runs[0].results.length;
+              comment += `### Checkov Scan\n- **Issues Found**: ${checkIssues}\n\n`;
+            }
+            
+            // Check for TFLint results
+            if (fs.existsSync('./reports/tflint-report.json')) {
+              const tflint = JSON.parse(fs.readFileSync('./reports/tflint-report.json', 'utf8'));
+              const lintIssues = tflint.issues.length;
+              comment += `### TFLint Analysis\n- **Issues Found**: ${lintIssues}\n\n`;
+            }
+            
+            comment += `### 📥 Artifacts\nDownload the **Compliance HTML Report** artifact to view full details!\n\n`;
+            comment += `All compliance and security scanning completed!`;
+            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## CI/CD Pipeline Summary\n\n All compliance and validation checks completed!\n\n Artifacts are available for download.`
+              body: comment
             });
 
   deploy:
