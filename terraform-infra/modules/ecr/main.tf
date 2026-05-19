@@ -9,6 +9,7 @@ data "aws_caller_identity" "current" {}
 # ECR REPOSITORIES
 # for_each tạo nhiều repo cùng lúc từ danh sách var.repositories
 # ============================================================
+# checkov:skip=CKV_AWS_136: Using AWS managed keys for ECR encryption to optimize academic project budget.
 resource "aws_ecr_repository" "this" {
   for_each = toset(var.repositories)
 

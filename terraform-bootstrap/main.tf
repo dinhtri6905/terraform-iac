@@ -70,6 +70,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "tfstate" {
 # - Ngăn concurrent apply
 # - KHÔNG được destroy cùng terraform-infra
 # ============================================================
+# checkov:skip=CKV_AWS_28: Point-in-Time Recovery (PITR) is disabled to save storage costs.
+# checkov:skip=CKV_AWS_119: Using AWS owned keys for DynamoDB to avoid KMS recurring charges.
 resource "aws_dynamodb_table" "terraform_lock" {
   name         = var.dynamodb_lock_table_name
   billing_mode = "PAY_PER_REQUEST"

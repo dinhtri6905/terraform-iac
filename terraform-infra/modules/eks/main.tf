@@ -77,6 +77,9 @@ resource "aws_iam_role_policy_attachment" "ecr_read_only" {
 }
 
 # ===== EKS Cluster =====
+# checkov:skip=CKV_AWS_58: Bypassing EKS Secrets encryption with CMK due to budget constraints.
+# checkov:skip=CKV_AWS_38: Allowing EKS Control Plane public endpoint to simplify architecture and avoid NAT Gateway costs.
+# checkov:skip=CKV_AWS_39: Public access to EKS API server is accepted for this environment.
 resource "aws_eks_cluster" "main" {
   name     = local.cluster_name
   version  = var.cluster_version
