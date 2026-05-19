@@ -298,7 +298,9 @@ jobs:
           name: compliance-reports
           path: |
             reports/
-            terraform-infra/.terraform/modules/
+      
+      
+
 
       - name: Comment PR with Compliance Summary
         if: github.event_name == 'pull_request'
@@ -331,6 +333,15 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
+
+      - name: Notify Slack Channel       
+        if: always() 
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_TITLE: "CI/CD Pipeline Status"
+          SLACK_MESSAGE: "Trạng thái chạy Pipeline của nhánh ${{ github.ref_name }}: ${{ job.status }}"
 
   deploy:
     name: Deploy infra
