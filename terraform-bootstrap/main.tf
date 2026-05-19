@@ -65,7 +65,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "tfstate" {
     }
   }
 }
-
+###########
 # ============================================================
 # DYNAMODB TABLE: STATE LOCKING
 # - Ngăn concurrent apply
