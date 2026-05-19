@@ -101,6 +101,15 @@ jobs:
           path: scan-reports/scoutsuite-*
           retention-days: 30
 
+      - name: Upload HTML Report to Slack
+        if: always()
+        uses: adrey/slack-file-upload-action@master
+        with:
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          path: scan-reports/ 
+          channel: "infrastructure-alerts"
+          initial_comment: "Báo cáo bảo mật hạ tầng mới nhất vừa được tạo! "
+
   combined-report:
     name: Generate Combined Report
     runs-on: ubuntu-latest
