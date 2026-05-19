@@ -110,11 +110,11 @@ jobs:
 
       - name: Upload HTML Report to Slack
         if: always()
-        uses: adrey/slack-file-upload-action@master
+        uses: MeilCli/slack-upload-file@v4
         with:
-          token: ${{ secrets.SLACK_BOT_TOKEN }}
-          path: scoutsuite-report.zip 
-          channel: "infrastructure-alerts"
+          slack_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          file_path: 'scoutsuite-report.zip' 
+          channel_id: "C0B4RQVF96E"
           initial_comment: "Báo cáo bảo mật hạ tầng mới nhất vừa được tạo! (Vui lòng giải nén để xem chi tiết)"
 
   combined-report:
