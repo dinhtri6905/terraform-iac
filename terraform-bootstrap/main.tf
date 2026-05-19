@@ -7,6 +7,7 @@ locals {
 # - Tạo một lần duy nhất
 # - KHÔNG được destroy cùng terraform-infra
 # - Giữ prevent_destroy = true để tránh xóa nhầm
+######
 # ============================================================
 resource "aws_s3_bucket" "tfstate" {
   bucket = var.tfstate_bucket_name
