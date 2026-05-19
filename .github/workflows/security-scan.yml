@@ -101,14 +101,21 @@ jobs:
           path: scan-reports/scoutsuite-*
           retention-days: 30
 
+      - name: Zip ScoutSuite Report for Slack
+        if: always()
+        run: |
+          cd scan-reports
+          zip -r ../scoutsuite-report.zip scoutsuite-*
+          cd ..
+
       - name: Upload HTML Report to Slack
         if: always()
         uses: adrey/slack-file-upload-action@master
         with:
           token: ${{ secrets.SLACK_BOT_TOKEN }}
-          path: scan-reports/scoutsuite-* 
+          path: scoutsuite-report.zip 
           channel: "infrastructure-alerts"
-          initial_comment: "Báo cáo bảo mật hạ tầng mới nhất vừa được tạo! "
+          initial_comment: "Báo cáo bảo mật hạ tầng mới nhất vừa được tạo! (Vui lòng giải nén để xem chi tiết)"
 
   combined-report:
     name: Generate Combined Report
