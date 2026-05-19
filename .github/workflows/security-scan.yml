@@ -106,7 +106,7 @@ jobs:
         uses: adrey/slack-file-upload-action@master
         with:
           token: ${{ secrets.SLACK_BOT_TOKEN }}
-          path: scan-reports/ 
+          path: scan-reports/scoutsuite-* 
           channel: "infrastructure-alerts"
           initial_comment: "Báo cáo bảo mật hạ tầng mới nhất vừa được tạo! "
 
