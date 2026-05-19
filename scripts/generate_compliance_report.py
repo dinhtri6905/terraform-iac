@@ -470,7 +470,7 @@ class ComplianceReportGenerator:
             
             html_content += '</div>'
         
-        html_content += f'''
+        html_content += f"""
         </div>
         
         <div class="timestamp">
