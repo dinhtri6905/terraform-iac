@@ -1,11 +1,3 @@
-# IAM Role
-#    ↓
-# Attach Policy
-#    ↓
-# EKS Cluster
-#    ↓
-# Node Group
-
 locals {
   name_prefix  = "${var.project_name}-${var.environment}"
   cluster_name = "${local.name_prefix}-eks"
@@ -181,8 +173,3 @@ resource "aws_iam_openid_connect_provider" "eks" {
     Name = "${local.cluster_name}-oidc"
   }
 }
-
-# ===== CloudWatch Log Group cho EKS =====
-# resource "aws_cloudwatch_log_group" "eks" {
-
-# }

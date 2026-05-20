@@ -62,3 +62,22 @@ module "s3" {
   config_bucket_name = var.config_bucket_name
   static_bucket_name = var.static_bucket_name
 }
+
+
+
+# # ===== MODULE: CLOUDTRAIL =====
+# module "cloudtrail" {
+#   source = "./modules/cloudtrail"
+
+#   project_name         = var.project_name
+#   environment          = var.environment
+# }
+
+# # ===== MODULE: CLOUDWATCH =====
+# module "cloudwatch" {
+#   source = "./modules/cloudwatch-alarms"
+
+#   project_name         = var.project_name
+#   environment          = var.environment
+
+# }
