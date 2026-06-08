@@ -46,11 +46,12 @@ resource "aws_s3_bucket_public_access_block" "config" {
 }
 
 # ===== STATIC BUCKET =====
-#checkov:skip=CKV_AWS_18: Access logging omitted for cost optimization
-#checkov:skip=CKV2_AWS_62: Event notifications not required 
-#checkov:skip=CKV_AWS_144: Cross-region replication not required
-#checkov:skip=CKV_AWS_145: SSE-S3 encryption is sufficient
 resource "aws_s3_bucket" "static" {
+  #checkov:skip=CKV_AWS_18: Access logging omitted for cost optimization
+  #checkov:skip=CKV2_AWS_62: Event notifications not required 
+  #checkov:skip=CKV_AWS_144: Cross-region replication not required
+  #checkov:skip=CKV_AWS_145: SSE-S3 encryption is sufficient
+
   bucket = var.static_bucket_name
 
   tags = {

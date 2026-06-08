@@ -26,8 +26,9 @@ resource "aws_internet_gateway" "main" {
 }
 
 # ===== Public Subnets =====
-#checkov:skip=CKV_AWS_130: Public subnet intentionally assigns public IPs for ALB
 resource "aws_subnet" "public" {
+  #checkov:skip=CKV_AWS_130: Public subnet intentionally assigns public IPs for ALB
+
   count = length(var.availability_zones)
 
   vpc_id                  = aws_vpc.main.id
