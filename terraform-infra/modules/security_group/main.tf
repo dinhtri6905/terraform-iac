@@ -8,6 +8,8 @@ locals {
 # aws_security_group_rule để tránh circular dependency
 # ============================================================
 resource "aws_security_group" "eks_cluster" {
+  #checkov:skip=CKV2_AWS_5: Security group attached by downstream resources
+
   name        = "${local.name_prefix}-eks-cluster-sg"
   description = "Security Group cho EKS cluster control plane"
   vpc_id      = var.vpc_id
@@ -21,6 +23,8 @@ resource "aws_security_group" "eks_cluster" {
 # SECURITY GROUP: EKS WORKER NODES
 # ============================================================
 resource "aws_security_group" "eks_nodes" {
+  #checkov:skip=CKV2_AWS_5: Security group attached by downstream resources
+
   name        = "${local.name_prefix}-eks-nodes-sg"
   description = "Security Group cho EKS worker nodes"
   vpc_id      = var.vpc_id
@@ -34,6 +38,8 @@ resource "aws_security_group" "eks_nodes" {
 # SECURITY GROUP: ALB
 # ============================================================
 resource "aws_security_group" "alb" {
+  #checkov:skip=CKV2_AWS_5: Security group attached by downstream resources
+
   name        = "${local.name_prefix}-alb-sg"
   description = "Security Group cho Application Load Balancer"
   vpc_id      = var.vpc_id
@@ -60,6 +66,8 @@ resource "aws_security_group_rule" "cluster_ingress_nodes_443" {
 
 # Control plane → tất cả outbound
 resource "aws_security_group_rule" "cluster_egress_all" {
+  #checkov:skip=CKV_AWS_382: Full outbound access required for EKS operation
+
   type              = "egress"
   description       = "Cluster allow all outbound"
   from_port         = 0
@@ -119,6 +127,8 @@ resource "aws_security_group_rule" "nodes_ingress_alb_nodeport" {
 
 # Nodes → tất cả outbound (pull image ECR, gọi AWS API)
 resource "aws_security_group_rule" "nodes_egress_all" {
+  #checkov:skip=CKV_AWS_382: Full outbound access required for worker nodes
+
   type              = "egress"
   description       = "Nodes allow all outbound"
   from_port         = 0
@@ -134,6 +144,8 @@ resource "aws_security_group_rule" "nodes_egress_all" {
 
 # Internet → ALB (HTTP)
 resource "aws_security_group_rule" "alb_ingress_http" {
+  #checkov:skip=CKV_AWS_260: Public HTTP access required for internet-facing ALB
+
   type              = "ingress"
   description       = "HTTP from internet"
   from_port         = 80

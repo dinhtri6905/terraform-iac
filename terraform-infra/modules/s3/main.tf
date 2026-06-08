@@ -4,6 +4,13 @@ locals {
 
 # ===== CONFIG BUCKET =====
 resource "aws_s3_bucket" "config" {
+  #checkov:skip=CKV2_AWS_61: Lifecycle policy not required for configuration bucket
+  #checkov:skip=CKV2_AWS_61: Lifecycle policy not required for configuration bucket
+  #checkov:skip=CKV2_AWS_62: Event notifications not required
+  #checkov:skip=CKV_AWS_145: SSE-S3 encryption is sufficient
+  #checkov:skip=CKV_AWS_144: Cross-region replication not required
+  #checkov:skip=CKV_AWS_18: Access logging omitted for cost optimization
+
   bucket = var.config_bucket_name
 
   tags = {
