@@ -4,6 +4,9 @@ locals {
 
 # ===== VPC =====
 resource "aws_vpc" "main" {
+  #checkov:skip=CKV2_AWS_11: VPC Flow Logs omitted for cost optimization
+  #checkov:skip=CKV2_AWS_12: Default security group managed separately
+
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
@@ -23,6 +26,7 @@ resource "aws_internet_gateway" "main" {
 }
 
 # ===== Public Subnets =====
+#checkov:skip=CKV_AWS_130: Public subnet intentionally assigns public IPs for ALB
 resource "aws_subnet" "public" {
   count = length(var.availability_zones)
 
